@@ -1,7 +1,7 @@
 using Progress.Lang.*.
-using Plabol.Path.*.
+using Pablol.Path.*.
 
-class Plabol.Path.Path:
+class Pablol.Path.Path:
     define public property PathType       as character no-undo get. private set.
     define public property FullName       as character no-undo get. private set.
     define public property Name           as character no-undo get. private set.
@@ -182,5 +182,9 @@ class Plabol.Path.Path:
                this-object:Exists         = false.
 
         empty temp-table tt-childs.
+    end method.
+
+    method public override character ToString():
+        return this-object:FullName.
     end method.
 end class.
