@@ -121,6 +121,20 @@ class Pablol.Path.Path:
             when index(ds-file-type-par, "X") > 0 then return "Unknown".
         end case.
     end method.
+        
+    method public Path GetChild():
+        return this-object:GetChild("").
+    end method.
+
+    method public Path GetChild(
+        input ds-where-par as character
+    ):
+        define variable o-paths-aux as Path extent no-undo.
+        assign o-paths-aux = this-object:GetChilds(ds-where-par).
+
+        if extent(o-paths-aux) > 0
+        then return o-paths-aux[1].
+    end method.
 
     method public Path extent GetChilds():
         return this-object:GetChilds("").
