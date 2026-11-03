@@ -25,6 +25,21 @@ class Pablol.Path.Path:
             return (if opsys = "Unix" then "/" else "\").
         end.
 
+    define public property Parent as Path no-undo
+        get:
+            define variable ds-parent-path-aux as character no-undo.
+
+            if not this-object:Exists
+            then return.
+
+            assign ds-parent-path-aux = substring(FullName, 1, r-index(FullName, PathSeparator) - 1).
+
+            if ds-parent-path-aux = ""
+            then return.
+
+            return new Path(ds-parent-path-aux).
+        end.
+
     define private temp-table tt-childs no-undo
         field full-name        as character
         field path-type        as character
