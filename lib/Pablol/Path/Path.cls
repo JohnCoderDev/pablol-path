@@ -20,7 +20,7 @@ class Pablol.Path.Path:
     define public property ChildCount     as integer   no-undo get. private set.
     define public property Exists         as logical   no-undo get. private set.
 
-    define public property PathSeparator as character no-undo 
+    define public property PathSeparator as character no-undo
         get:
             return (if opsys = "Unix" then "/" else "\").
         end.
@@ -30,12 +30,12 @@ class Pablol.Path.Path:
             define variable ds-parent-path-aux as character no-undo.
 
             if not this-object:Exists
-            then return.
+            then return ?.
 
             assign ds-parent-path-aux = substring(FullName, 1, r-index(FullName, PathSeparator) - 1).
 
             if ds-parent-path-aux = ""
-            then return.
+            then return ?.
 
             return new Path(ds-parent-path-aux).
         end.
@@ -75,7 +75,7 @@ class Pablol.Path.Path:
 
         if file-info:full-pathname = ?
         then return.
-        
+
         assign this-object:Exists         = true
                this-object:FullName       = file-info:full-pathname
                this-object:Name           = substring(FullName, r-index(FullName, PathSeparator) + 1)
@@ -92,7 +92,7 @@ class Pablol.Path.Path:
                this-object:IsDirectory    = (index(file-info:file-type, "D") > 0)
                this-object:IsFile         = (index(file-info:file-type, "F") > 0)
                this-object:PathType       = GetPathType(file-info:file-type).
-        
+
         if IsDirectory
         then do:
             input from os-dir(FullName).
@@ -105,7 +105,7 @@ class Pablol.Path.Path:
                     create tt-childs.
                     assign file-info:file-name        = ds-full-name-aux
                            tt-childs.name             = ds-name-aux
-                           tt-childs.full-name        = ds-full-name-aux
+                           tt-childs.full-name        = file-info:full-pathname
                            tt-childs.base-name        = substring(ds-name-aux, 1, r-index(ds-name-aux, ".") - 1)
                            tt-childs.extension        = substring(ds-name-aux, r-index(ds-name-aux, ".") + 1)
                            tt-childs.create-time      = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
@@ -136,7 +136,7 @@ class Pablol.Path.Path:
             when index(ds-file-type-par, "X") > 0 then return "Unknown".
         end case.
     end method.
-        
+
     method public Path GetChild():
         return this-object:GetChild("").
     end method.
@@ -175,11 +175,11 @@ class Pablol.Path.Path:
             "preselect each " + (buffer tt-childs:name) + " no-lock " + ds-where-par
         ).
         h-query-tt-childs-aux:query-open().
-        
+
         assign extent(o-paths-aux) = h-query-tt-childs-aux:num-results.
 
         h-query-tt-childs-aux:get-first().
-        
+
         do while not h-query-tt-childs-aux:query-off-end:
             assign o-paths-aux[h-query-tt-childs-aux:current-result-row] = new Path(tt-childs.full-name).
             h-query-tt-childs-aux:get-next().
@@ -211,6 +211,243 @@ class Pablol.Path.Path:
                this-object:Exists         = false.
 
         empty temp-table tt-childs.
+    end method.
+
+    method public Path CreateChildDirectory(
+        input ds-name-par as character
+    ):
+        define variable nr-os-status-aux as integer   no-undo.
+        define variable ds-new-path-aux  as character no-undo.
+
+        if this-object:Has(ds-name-par)
+        then do:
+            return error new AppError(
+                "Child with given name already exists: '" + ds-name-par + "'",
+                -000100002
+            ).
+        end.
+
+        if not this-object:IsDirectory
+        then do:
+            return error new AppError(
+                "Path is not a directory. Cannot create child directory: '" + ds-name-par + "'",
+                -000100003
+            ).
+        end.
+
+        assign ds-new-path-aux = this-object:FullName + PathSeparator + ds-name-par.
+
+        os-create-dir value(this-object:FullName + PathSeparator + ds-name-par).
+
+        assign nr-os-status-aux = os-error.
+
+        if nr-os-status-aux <> 0
+        then do:
+            return error new AppError(
+                "Failed to create directory: '" + ds-name-par + "'. OS error code: " + string(nr-os-status-aux),
+                -000100004
+            ).
+        end.
+
+        assign file-info:file-name = ds-new-path-aux.
+
+        if file-info:full-pathname = ?
+        then do:
+            return error new AppError(
+                "Failed to create directory: '" + ds-name-par + "'",
+                -000100005
+            ).
+        end.
+
+        create tt-childs.
+        assign file-info:file-name        = ds-new-path-aux
+               tt-childs.name             = ds-name-par
+               tt-childs.full-name        = file-info:full-pathname
+               tt-childs.base-name        = substring(ds-name-par, 1, r-index(ds-name-par, ".") - 1)
+               tt-childs.extension        = substring(ds-name-par, r-index(ds-name-par, ".") + 1)
+               tt-childs.create-time      = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
+               tt-childs.modify-time      = datetime(file-info:file-mod-date, file-info:file-mod-time * 1000)
+               tt-childs.is-directory     = (index(file-info:file-type, "D") > 0)
+               tt-childs.is-file          = (index(file-info:file-type, "F") > 0)
+               tt-childs.is-writeable     = (index(file-info:file-type, "W") > 0)
+               tt-childs.is-readable      = (index(file-info:file-type, "R") > 0)
+               tt-childs.is-hidden        = (index(file-info:file-type, "H") > 0)
+               tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
+               tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
+               tt-childs.size             = file-info:file-size
+               tt-childs.path-type        = GetPathType(file-info:file-type)
+               ChildCount                 = ChildCount + 1.
+        
+        return new Path(ds-new-path-aux).
+    end method.
+
+    method public Path CreateChildFile(
+        input ds-name-par as character
+    ):
+        return CreateChildFile(ds-name-par, "").
+    end method.
+
+    method public Path CreateChildFile(
+        input ds-name-par    as character,
+        input ds-content-par as longchar
+    ):
+        define variable nr-os-status-aux as integer   no-undo.
+        define variable ds-new-path-aux  as character no-undo.
+
+        if this-object:Has(ds-name-par)
+        then do:
+            return error new AppError(
+                "Child with given name already exists: '" + ds-name-par + "'",
+                -000100006
+            ).
+        end.
+
+        if not this-object:IsDirectory
+        then do:
+            return error new AppError(
+                "Path is not a directory. Cannot create child file: '" + ds-name-par + "'",
+                -000100007
+            ).
+        end.
+
+        assign ds-name-par     = trim(ds-name-par, PathSeparator)
+               ds-new-path-aux = this-object:FullName + PathSeparator + ds-name-par.
+
+        copy-lob from ds-content-par to file ds-new-path-aux no-convert.
+
+        assign file-info:file-name = ds-new-path-aux.
+
+        create tt-childs.
+        assign file-info:file-name        = ds-new-path-aux
+               tt-childs.name             = ds-name-par
+               tt-childs.full-name        = file-info:full-pathname
+               tt-childs.base-name        = substring(ds-name-par, 1, r-index(ds-name-par, ".") - 1)
+               tt-childs.extension        = substring(ds-name-par, r-index(ds-name-par, ".") + 1)
+               tt-childs.create-time      = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
+               tt-childs.modify-time      = datetime(file-info:file-mod-date, file-info:file-mod-time * 1000)
+               tt-childs.is-directory     = (index(file-info:file-type, "D") > 0)
+               tt-childs.is-file          = (index(file-info:file-type, "F") > 0)
+               tt-childs.is-writeable     = (index(file-info:file-type, "W") > 0)
+               tt-childs.is-readable      = (index(file-info:file-type, "R") > 0)
+               tt-childs.is-hidden        = (index(file-info:file-type, "H") > 0)
+               tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
+               tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
+               tt-childs.size             = file-info:file-size
+               tt-childs.path-type        = GetPathType(file-info:file-type)
+               ChildCount                 = ChildCount + 1.
+
+        return new Path(ds-new-path-aux).
+    end method.
+
+    method public logical DeleteChild(
+        input ds-name-par as character
+    ):
+        define variable ds-full-name-aux as character no-undo.
+        define variable nr-os-status-aux as integer   no-undo.
+
+        if not this-object:IsDirectory
+        then do:
+            return error new AppError(
+                "Path is not a directory. Cannot delete child: '" + ds-name-par + "'",
+                -000100010
+            ).
+        end.
+
+        if this-object:Has(ds-name-par)
+        then do:
+            assign ds-full-name-aux = this-object:FullName + this-object:PathSeparator + ds-name-par.
+
+            os-delete value(ds-full-name-aux) recursive.
+
+            assign nr-os-status-aux = os-error.
+
+            if nr-os-status-aux <> 0
+            then do:
+                return error new AppError(
+                    "Failed to delete child: '" + ds-name-par + "'. OS error code: " + string(nr-os-status-aux),
+                    -000100011
+                ).
+            end.
+
+            assign this-object:ChildCount = this-object:ChildCount - 1.
+
+            return true.
+        end.
+
+        return false.
+    end method.
+
+    method public Path RenameChild(
+        input ds-old-name-par as character,
+        input ds-new-name-par as character
+    ):
+        define variable ds-old-full-name-aux as character no-undo.
+        define variable ds-new-full-name-aux as character no-undo.
+        define variable nr-os-status-aux     as integer   no-undo.
+
+        if not this-object:Has(ds-old-name-par)
+        then do:
+            return error new AppError(
+                "Child with given old name does not exist: '" + ds-old-name-par + "'",
+                -000100008
+            ).
+        end.
+
+        if this-object:Has(ds-new-name-par)
+        then do:
+            return error new AppError(
+                "Child with given new name already exists: '" + ds-new-name-par + "'",
+                -000100009
+            ).
+        end.
+
+        assign ds-old-full-name-aux = this-object:FullName + this-object:PathSeparator + ds-old-name-par
+               ds-new-full-name-aux = this-object:FullName + this-object:PathSeparator + ds-new-name-par.
+        
+        os-rename value(ds-old-full-name-aux) value(ds-new-full-name-aux).
+
+        assign nr-os-status-aux = os-error.
+
+        if nr-os-status-aux <> 0
+        then do:
+            return error new AppError(
+                "Failed to rename child from '" + ds-old-name-par + "' to '" 
+                    + ds-new-name-par + "'. OS error code: " + string(nr-os-status-aux),
+                -000100012
+            ).
+        end.
+
+        find first tt-childs
+            where tt-childs.name = ds-old-name-par
+        exclusive-lock.
+
+        assign file-info:file-name        = ds-new-full-name-aux
+               tt-childs.name             = ds-new-name-par
+               tt-childs.full-name        = file-info:full-pathname
+               tt-childs.base-name        = substring(ds-new-name-par, 1, r-index(ds-new-name-par, ".") - 1)
+               tt-childs.extension        = substring(ds-new-name-par, r-index(ds-new-name-par, ".") + 1)
+               tt-childs.create-time      = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
+               tt-childs.modify-time      = datetime(file-info:file-mod-date, file-info:file-mod-time * 1000)
+               tt-childs.is-directory     = (index(file-info:file-type, "D") > 0)
+               tt-childs.is-file          = (index(file-info:file-type, "F") > 0)
+               tt-childs.is-writeable     = (index(file-info:file-type, "W") > 0)
+               tt-childs.is-readable      = (index(file-info:file-type, "R") > 0)
+               tt-childs.is-hidden        = (index(file-info:file-type, "H") > 0)
+               tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
+               tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
+               tt-childs.size             = file-info:file-size
+               tt-childs.path-type        = GetPathType(file-info:file-type).
+
+        return new Path(ds-new-full-name-aux).
+    end method.
+
+    method public logical Has(
+        input ds-name-par as character
+    ):
+        return can-find(
+            first tt-childs
+                where tt-childs.name matches ds-name-par
+        ).
     end method.
 
     method public override character ToString():
