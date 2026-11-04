@@ -32,7 +32,11 @@ class Pablol.Path.Path:
             if not this-object:Exists
             then return ?.
 
-            assign ds-parent-path-aux = substring(FullName, 1, r-index(FullName, PathSeparator) - 1).
+            assign ds-parent-path-aux = substring(
+                                            this-object:FullName,
+                                            1,
+                                            r-index(FullName, PathSeparator) - 1
+                                        ).
 
             if ds-parent-path-aux = ""
             then return ?.
@@ -78,7 +82,13 @@ class Pablol.Path.Path:
 
         assign this-object:Exists         = true
                this-object:FullName       = file-info:full-pathname
-               this-object:Name           = substring(FullName, r-index(FullName, PathSeparator) + 1)
+               this-object:Name           = substring(
+                                                this-object:FullName,
+                                                r-index(
+                                                    this-object:FullName,
+                                                    this-object:PathSeparator
+                                                ) + 1
+                                            )
                this-object:BaseName       = substring(Name, 1, r-index(Name, ".") - 1)
                this-object:Extension      = substring(Name, r-index(Name, ".") + 1)
                this-object:CreateTime     = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
@@ -91,11 +101,11 @@ class Pablol.Path.Path:
                this-object:IsSymbolicLink = (index(file-info:file-type, "L") > 0)
                this-object:IsDirectory    = (index(file-info:file-type, "D") > 0)
                this-object:IsFile         = (index(file-info:file-type, "F") > 0)
-               this-object:PathType       = GetPathType(file-info:file-type).
+               this-object:PathType       = this-object:GetPathType(file-info:file-type).
 
-        if IsDirectory
+        if this-object:IsDirectory
         then do:
-            input from os-dir(FullName).
+            input from os-dir(this-object:FullName).
                 repeat:
                     import ds-name-aux ds-full-name-aux.
 
@@ -118,8 +128,8 @@ class Pablol.Path.Path:
                            tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                            tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                            tt-childs.size             = file-info:file-size
-                           tt-childs.path-type        = GetPathType(file-info:file-type)
-                           ChildCount                 = ChildCount + 1.
+                           tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
+                           this-object:ChildCount     = this-object:ChildCount + 1.
                 end.
             input close.
         end.
@@ -161,7 +171,7 @@ class Pablol.Path.Path:
         define variable h-query-tt-childs-aux as handle      no-undo.
         define variable o-paths-aux           as Path extent no-undo.
 
-        if not IsDirectory
+        if not this-object:IsDirectory
         then do:
             return error new AppError(
                 "Path is not a directory. Cannot get childs.",
@@ -235,9 +245,9 @@ class Pablol.Path.Path:
             ).
         end.
 
-        assign ds-new-path-aux = this-object:FullName + PathSeparator + ds-name-par.
+        assign ds-new-path-aux = this-object:FullName + this-object:PathSeparator + ds-name-par.
 
-        os-create-dir value(this-object:FullName + PathSeparator + ds-name-par).
+        os-create-dir value(this-object:FullName + this-object:PathSeparator + ds-name-par).
 
         assign nr-os-status-aux = os-error.
 
@@ -275,8 +285,8 @@ class Pablol.Path.Path:
                tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = GetPathType(file-info:file-type)
-               ChildCount                 = ChildCount + 1.
+               tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
+               this-object:ChildCount     = this-object:ChildCount + 1.
         
         return new Path(ds-new-path-aux).
     end method.
@@ -284,7 +294,7 @@ class Pablol.Path.Path:
     method public Path CreateChildFile(
         input ds-name-par as character
     ):
-        return CreateChildFile(ds-name-par, "").
+        return this-object:CreateChildFile(ds-name-par, "").
     end method.
 
     method public Path CreateChildFile(
@@ -310,8 +320,8 @@ class Pablol.Path.Path:
             ).
         end.
 
-        assign ds-name-par     = trim(ds-name-par, PathSeparator)
-               ds-new-path-aux = this-object:FullName + PathSeparator + ds-name-par.
+        assign ds-name-par     = trim(ds-name-par, this-object:PathSeparator)
+               ds-new-path-aux = this-object:FullName + this-object:PathSeparator + ds-name-par.
 
         copy-lob from ds-content-par to file ds-new-path-aux no-convert.
 
@@ -333,8 +343,8 @@ class Pablol.Path.Path:
                tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = GetPathType(file-info:file-type)
-               ChildCount                 = ChildCount + 1.
+               tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
+               this-object:ChildCount     = this-object:ChildCount + 1.
 
         return new Path(ds-new-path-aux).
     end method.
@@ -436,7 +446,7 @@ class Pablol.Path.Path:
                tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = GetPathType(file-info:file-type).
+               tt-childs.path-type        = this-object:GetPathType(file-info:file-type).
 
         return new Path(ds-new-full-name-aux).
     end method.
