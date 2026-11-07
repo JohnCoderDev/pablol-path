@@ -113,23 +113,10 @@ class Pablol.Path.Path:
                     then next.
 
                     create tt-childs.
-                    assign file-info:file-name        = ds-full-name-aux
-                           tt-childs.name             = ds-name-aux
-                           tt-childs.full-name        = file-info:full-pathname
-                           tt-childs.base-name        = substring(ds-name-aux, 1, r-index(ds-name-aux, ".") - 1)
-                           tt-childs.extension        = substring(ds-name-aux, r-index(ds-name-aux, ".") + 1)
-                           tt-childs.create-time      = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
-                           tt-childs.modify-time      = datetime(file-info:file-mod-date, file-info:file-mod-time * 1000)
-                           tt-childs.is-directory     = (index(file-info:file-type, "D") > 0)
-                           tt-childs.is-file          = (index(file-info:file-type, "F") > 0)
-                           tt-childs.is-writeable     = (index(file-info:file-type, "W") > 0)
-                           tt-childs.is-readable      = (index(file-info:file-type, "R") > 0)
-                           tt-childs.is-hidden        = (index(file-info:file-type, "H") > 0)
-                           tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
-                           tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
-                           tt-childs.size             = file-info:file-size
-                           tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
-                           this-object:ChildCount     = this-object:ChildCount + 1.
+
+                    this-object:_RegisterChild(ds-full-name-aux).
+
+                    assign this-object:ChildCount = this-object:ChildCount + 1.
                 end.
             input close.
         end.
@@ -270,23 +257,10 @@ class Pablol.Path.Path:
         end.
 
         create tt-childs.
-        assign file-info:file-name        = ds-new-path-aux
-               tt-childs.name             = ds-name-par
-               tt-childs.full-name        = file-info:full-pathname
-               tt-childs.base-name        = substring(ds-name-par, 1, r-index(ds-name-par, ".") - 1)
-               tt-childs.extension        = substring(ds-name-par, r-index(ds-name-par, ".") + 1)
-               tt-childs.create-time      = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
-               tt-childs.modify-time      = datetime(file-info:file-mod-date, file-info:file-mod-time * 1000)
-               tt-childs.is-directory     = (index(file-info:file-type, "D") > 0)
-               tt-childs.is-file          = (index(file-info:file-type, "F") > 0)
-               tt-childs.is-writeable     = (index(file-info:file-type, "W") > 0)
-               tt-childs.is-readable      = (index(file-info:file-type, "R") > 0)
-               tt-childs.is-hidden        = (index(file-info:file-type, "H") > 0)
-               tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
-               tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
-               tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
-               this-object:ChildCount     = this-object:ChildCount + 1.
+
+        this-object:_RegisterChild(ds-new-path-aux).
+
+        assign this-object:ChildCount = this-object:ChildCount + 1.
         
         return new Path(ds-new-path-aux).
     end method.
@@ -328,11 +302,29 @@ class Pablol.Path.Path:
         assign file-info:file-name = ds-new-path-aux.
 
         create tt-childs.
-        assign file-info:file-name        = ds-new-path-aux
-               tt-childs.name             = ds-name-par
-               tt-childs.full-name        = file-info:full-pathname
-               tt-childs.base-name        = substring(ds-name-par, 1, r-index(ds-name-par, ".") - 1)
-               tt-childs.extension        = substring(ds-name-par, r-index(ds-name-par, ".") + 1)
+
+        this-object:_RegisterChild(ds-new-path-aux).
+
+        assign this-object:ChildCount = this-object:ChildCount + 1.
+
+        return new Path(ds-new-path-aux).
+    end method.
+
+    method private void _RegisterChild(
+        input ds-path-par as character
+    ):
+        if not avail tt-childs
+        then return.
+
+        assign file-info:file-name = ds-path-par.
+
+        if file-info:full-pathname = ?
+        then return.
+
+        assign tt-childs.full-name        = file-info:full-pathname
+               tt-childs.name             = substring(tt-childs.full-name, r-index(tt-childs.full-name, this-object:PathSeparator) + 1)
+               tt-childs.base-name        = substring(tt-childs.name, 1, r-index(tt-childs.name, ".") - 1)
+               tt-childs.extension        = substring(tt-childs.name, r-index(tt-childs.name, ".") + 1)
                tt-childs.create-time      = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
                tt-childs.modify-time      = datetime(file-info:file-mod-date, file-info:file-mod-time * 1000)
                tt-childs.is-directory     = (index(file-info:file-type, "D") > 0)
@@ -343,10 +335,7 @@ class Pablol.Path.Path:
                tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
-               this-object:ChildCount     = this-object:ChildCount + 1.
-
-        return new Path(ds-new-path-aux).
+               tt-childs.path-type        = this-object:GetPathType(file-info:file-type).
     end method.
 
     method public logical DeleteChild(
@@ -431,22 +420,7 @@ class Pablol.Path.Path:
             where tt-childs.name = ds-old-name-par
         exclusive-lock.
 
-        assign file-info:file-name        = ds-new-full-name-aux
-               tt-childs.name             = ds-new-name-par
-               tt-childs.full-name        = file-info:full-pathname
-               tt-childs.base-name        = substring(ds-new-name-par, 1, r-index(ds-new-name-par, ".") - 1)
-               tt-childs.extension        = substring(ds-new-name-par, r-index(ds-new-name-par, ".") + 1)
-               tt-childs.create-time      = datetime(file-info:file-create-date, file-info:file-create-time * 1000)
-               tt-childs.modify-time      = datetime(file-info:file-mod-date, file-info:file-mod-time * 1000)
-               tt-childs.is-directory     = (index(file-info:file-type, "D") > 0)
-               tt-childs.is-file          = (index(file-info:file-type, "F") > 0)
-               tt-childs.is-writeable     = (index(file-info:file-type, "W") > 0)
-               tt-childs.is-readable      = (index(file-info:file-type, "R") > 0)
-               tt-childs.is-hidden        = (index(file-info:file-type, "H") > 0)
-               tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
-               tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
-               tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = this-object:GetPathType(file-info:file-type).
+        this-object:_RegisterChild(ds-new-full-name-aux).
 
         return new Path(ds-new-full-name-aux).
     end method.
