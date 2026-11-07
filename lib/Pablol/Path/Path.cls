@@ -73,7 +73,7 @@ class Pablol.Path.Path:
         define variable ds-name-aux      as character no-undo.
         define variable ds-full-name-aux as character no-undo.
 
-        ResetPath().
+        _ResetPath().
 
         assign file-info:file-name = ds-path-par.
 
@@ -101,7 +101,7 @@ class Pablol.Path.Path:
                this-object:IsSymbolicLink = (index(file-info:file-type, "L") > 0)
                this-object:IsDirectory    = (index(file-info:file-type, "D") > 0)
                this-object:IsFile         = (index(file-info:file-type, "F") > 0)
-               this-object:PathType       = this-object:GetPathType(file-info:file-type).
+               this-object:PathType       = this-object:_GetPathType(file-info:file-type).
 
         if this-object:IsDirectory
         then do:
@@ -128,14 +128,14 @@ class Pablol.Path.Path:
                            tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                            tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                            tt-childs.size             = file-info:file-size
-                           tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
+                           tt-childs.path-type        = this-object:_GetPathType(file-info:file-type)
                            this-object:ChildCount     = this-object:ChildCount + 1.
                 end.
             input close.
         end.
     end method.
 
-    method private character GetPathType(
+    method private character _GetPathType(
         input ds-file-type-par as character
     ):
         case true:
@@ -201,7 +201,7 @@ class Pablol.Path.Path:
         return o-paths-aux.
     end method.
 
-    method private void ResetPath():
+    method private void _ResetPath():
         assign this-object:PathType       = ?
                this-object:FullName       = ?
                this-object:Name           = ?
@@ -285,7 +285,7 @@ class Pablol.Path.Path:
                tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
+               tt-childs.path-type        = this-object:_GetPathType(file-info:file-type)
                this-object:ChildCount     = this-object:ChildCount + 1.
         
         return new Path(ds-new-path-aux).
@@ -343,7 +343,7 @@ class Pablol.Path.Path:
                tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = this-object:GetPathType(file-info:file-type)
+               tt-childs.path-type        = this-object:_GetPathType(file-info:file-type)
                this-object:ChildCount     = this-object:ChildCount + 1.
 
         return new Path(ds-new-path-aux).
@@ -446,7 +446,7 @@ class Pablol.Path.Path:
                tt-childs.is-pipe          = (index(file-info:file-type, "P") > 0)
                tt-childs.is-symbolic-link = (index(file-info:file-type, "L") > 0)
                tt-childs.size             = file-info:file-size
-               tt-childs.path-type        = this-object:GetPathType(file-info:file-type).
+               tt-childs.path-type        = this-object:_GetPathType(file-info:file-type).
 
         return new Path(ds-new-full-name-aux).
     end method.
