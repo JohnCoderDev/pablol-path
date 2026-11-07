@@ -73,7 +73,7 @@ class Pablol.Path.Path:
         define variable ds-name-aux      as character no-undo.
         define variable ds-full-name-aux as character no-undo.
 
-        ResetPath().
+        _ResetPath().
 
         assign file-info:file-name = ds-path-par.
 
@@ -101,7 +101,7 @@ class Pablol.Path.Path:
                this-object:IsSymbolicLink = (index(file-info:file-type, "L") > 0)
                this-object:IsDirectory    = (index(file-info:file-type, "D") > 0)
                this-object:IsFile         = (index(file-info:file-type, "F") > 0)
-               this-object:PathType       = this-object:GetPathType(file-info:file-type).
+               this-object:PathType       = this-object:_GetPathType(file-info:file-type).
 
         if this-object:IsDirectory
         then do:
@@ -122,7 +122,7 @@ class Pablol.Path.Path:
         end.
     end method.
 
-    method private character GetPathType(
+    method private character _GetPathType(
         input ds-file-type-par as character
     ):
         case true:
@@ -188,7 +188,7 @@ class Pablol.Path.Path:
         return o-paths-aux.
     end method.
 
-    method private void ResetPath():
+    method private void _ResetPath():
         assign this-object:PathType       = ?
                this-object:FullName       = ?
                this-object:Name           = ?
